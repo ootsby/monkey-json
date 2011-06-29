@@ -40,7 +40,7 @@ Class JSONToken
 	Const TOKEN_NULL:Int = 9
 	Const TOKEN_STRING:Int = 10
 	Const TOKEN_FLOAT:Int = 11
-	Const TOKEN_INTEGER:Int = 11
+	Const TOKEN_INTEGER:Int = 12
 
 	Field tokenType:Int
 	Field value:Object
@@ -138,18 +138,18 @@ Class JSONTokeniser
 			Case ":"
 				retToken = JSONToken.CreateToken(JSONToken.TOKEN_COLON,charStr)
 			Case "t"
-				If jsonString[stringIndex..stringIndex+2] = "rue"
-					stringIndex += 2
+				If jsonString[stringIndex..stringIndex+3] = "rue"
+					stringIndex += 3
 					retToken = JSONToken.CreateToken(JSONToken.TOKEN_TRUE,"true")
 				End
 			Case "f"
-				If jsonString[stringIndex..stringIndex+3] = "alse"
-					stringIndex += 3
+				If jsonString[stringIndex..stringIndex+4] = "alse"
+					stringIndex += 4
 					retToken = JSONToken.CreateToken(JSONToken.TOKEN_FALSE,"false")
 				End
 			Case "n"
-				If jsonString[stringIndex..stringIndex+2] = "ull"
-					stringIndex += 2
+				If jsonString[stringIndex..stringIndex+3] = "ull"
+					stringIndex += 3
 					retToken = JSONToken.CreateToken(JSONToken.TOKEN_NULL,"null")
 				End
 			Case "~q"

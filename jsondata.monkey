@@ -39,7 +39,7 @@ Class JSONData
 		
 		Local data:JSONDataItem = GetJSONDataItem(tokeniser)
 			
-		If Not data
+		If data = Null
 			Return New JSONDataError("Unknown JSON error.", tokeniser.GetCurrentSectionString())
 		ElseIf data.dataType <> JSONDataType.JSON_ERROR And data.dataType <> JSONDataItem.JSONDataType.JSON_OBJECT And data.dataType <> JSONDataItem.JSONDataType.JSON_ARRAY
 			Return New JSONDataError("JSON Document malformed. Root node is not an object or an array", tokeniser.GetCurrentSectionString())
@@ -67,7 +67,7 @@ Class JSONData
 
 	Function GetJSONDataItem:JSONDataItem(tokeniser:JSONTokeniser)
 		Local token:JSONToken = tokeniser.NextToken()
-	
+		'Print token
 		Select token.tokenType
 			Case JSONToken.TOKEN_OPEN_CURLY
 				Return GetJSONObject(tokeniser)
@@ -244,6 +244,21 @@ Class JSONDataItem Abstract
 
 	Field dataType:Int = JSONDataType.JSON_NULL
 
+	Method ToInt:Int()
+		Print "Unsupported conversion to Int for " + Self.ToString()
+		Return -1
+	End
+
+	Method ToFloat:Float()
+		Print "Unsupported conversion to Float for " + Self.ToString()
+		Return -1.0
+	End
+
+	Method ToBool:Bool()
+		Print "Unsupported conversion to Bool for " + Self.ToString()
+		Return False
+	End
+
 	'Method ToPrettyString() Abstract
 	Method ToString:String() Abstract
 	Method ToJSONString:String() 
@@ -285,6 +300,14 @@ Class JSONFloat Extends JSONDataItem
 		Self.value = value
 	End
 
+	Method ToInt:Int()
+		Return Int(value)
+	End
+
+	Method ToFloat:Float()
+		Return value
+	End
+
 	Method ToString:String()
 		Return "" + value
 	End
@@ -296,6 +319,14 @@ Class JSONInteger Extends JSONDataItem
 	Method New(value:Int) 
 		dataType = JSONDataType.JSON_INTEGER 
 		Self.value = value
+	End
+
+	Method ToInt:Int()
+		Return value
+	End
+
+	Method ToFloat:Float()
+		Return Float(value)
 	End
 
 	Method ToString:String()
@@ -323,7 +354,7 @@ Class JSONString Extends JSONDataItem
 	End
 
 	Method ToString:String()
-		Return "~q"+monkeyString+"~q"
+		Return monkeyString
 	End
 
 End
@@ -336,7 +367,19 @@ Class JSONBool Extends JSONDataItem
 		Self.value = value
 	End
 
+	Method ToBool:Bool()
+		return value
+	End
+	
 	Method ToString:String()
+		If value
+			Return "True"
+		Else
+			Return "False"
+		End
+	End
+
+	Method ToJSONString:String()
 		If value
 			Return "true"
 		Else
@@ -398,7 +441,7 @@ Class JSONArray Extends JSONDataItem
 		Return retString + "]"
 	End
 
-	Method ObjectEnumerator:Object()
+	Method ObjectEnumerator:list.Enumerator<JSONDataItem>()
 		Return values.ObjectEnumerator()
 	End
 End
