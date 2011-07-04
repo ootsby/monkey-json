@@ -106,38 +106,35 @@ Class JSONData
 			If data1.dataType <> JSONDataType.JSON_STRING
 				Return New JSONDataError("Expected item name, got " + data1, tokeniser.GetCurrentSectionString())
 			End
+			
 			data2 = JSONData.GetJSONDataItem(tokeniser)
+			
 			If data2.dataType <> JSONDataType.JSON_NON_DATA
 				Return New JSONDataError("Expected ':', got " + data2, tokeniser.GetCurrentSectionString())
-				'tokeniser.PrintErrorMessage("Expected ':', got " + data2 )
-				'Exit
 			Else
 				If JSONNonData(data2).value.tokenType <> JSONToken.TOKEN_COLON
 					Return New JSONDataError("Expected ':', got " + JSONNonData(data2).value, tokeniser.GetCurrentSectionString())
-					'tokeniser.PrintErrorMessage("Expected ':', got " + JSONNonData(data2).value )
-					'Exit
 				End
 			End
+			
 			data2 = JSONData.GetJSONDataItem(tokeniser)
+			
 			If data2.dataType = JSONDataType.JSON_ERROR
 				Return data2
 			ElseIf data2.dataType = JSONDataType.JSON_NON_DATA
 				Return New JSONDataError("Expected item value, got " + JSONNonData(data2).value, tokeniser.GetCurrentSectionString())
-				'tokeniser.PrintErrorMessage("Expected item value, got " + JSONNonData(data2).value )
-				'Exit
 			End
+			
 			jsonObject.AddItem(JSONString(data1).value,data2)
 			data2 = JSONData.GetJSONDataItem(tokeniser)
+			
 			If data2.dataType <> JSONDataType.JSON_NON_DATA
 				Return New JSONDataError("Expected ',' or '}', got " + data2, tokeniser.GetCurrentSectionString())
-				'tokeniser.PrintErrorMessage("Expected ',' or '}', got " + data2 )
-				'Exit
 			Else
 				If JSONNonData(data2).value.tokenType = JSONToken.TOKEN_CLOSE_CURLY
 					Exit 'End of Object'
 				ElseIf JSONNonData(data2).value.tokenType <> JSONToken.TOKEN_COMMA
 					Return New JSONDataError("Expected ',' or '}', got " + JSONNonData(data2).value, tokeniser.GetCurrentSectionString())
-					'tokeniser.PrintErrorMessage("Expected ',' or '}', got " + JSONNonData(data2).value )
 				End
 			End
 			data1 = JSONData.GetJSONDataItem(tokeniser)
@@ -405,6 +402,22 @@ Class JSONArray Extends JSONDataItem
 		dataType = JSONDataType.JSON_ARRAY 
 	End
 
+	Method AddPrim( value:Bool )
+		values.AddLast(JSONData.CreateJSONDataItem(value))
+	End
+	
+	Method AddPrim( value:Int )
+		values.AddLast(JSONData.CreateJSONDataItem(value))
+	End
+	
+	Method AddPrim( value:Float )
+		values.AddLast(JSONData.CreateJSONDataItem(value))
+	End
+	
+	Method AddPrim( value:String )
+		values.AddLast(JSONData.CreateJSONDataItem(value))
+	End
+	
 	Method AddItem( dataItem:JSONDataItem )
 		values.AddLast(dataItem)
 	End
@@ -453,6 +466,22 @@ Class JSONObject Extends JSONDataItem
 		dataType = JSONDataType.JSON_OBJECT 
 	End
 
+	Method AddPrim( name:String, value:Bool )
+		values.Set(JSONData.ConvertJSONEscapes(name),JSONData.CreateJSONDataItem(value))
+	End
+	
+	Method AddPrim( name:String, value:Int )
+		values.Set(JSONData.ConvertJSONEscapes(name),JSONData.CreateJSONDataItem(value))
+	End
+	
+	Method AddPrim( name:String, value:Float )
+		values.Set(JSONData.ConvertJSONEscapes(name),JSONData.CreateJSONDataItem(value))
+	End
+	
+	Method AddPrim( name:String, value:String )
+		values.Set(JSONData.ConvertJSONEscapes(name),JSONData.CreateJSONDataItem(value))
+	End
+	
 	Method AddItem( name:String, dataItem:JSONDataItem )
 		values.Set(JSONData.ConvertJSONEscapes(name),dataItem)
 	End
