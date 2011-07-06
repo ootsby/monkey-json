@@ -183,7 +183,50 @@ Class JSONData
 	End	
 
 	Function ConvertMonkeyEscapes:String( input:String )
-    	Return input.Replace( "\", "\\" ).Replace( "/", "\/" ).Replace( "~q", "\~q" ).Replace( "~n", "\n" ).Replace( "~r", "\r" ).Replace( "~t", "\t" ).Replace("{ff}","\f").Replace("{un}","\u").Replace("{bs}","\b")
+    	Local ch:Int
+    	Local retString:String
+    	Local insert:String = ""
+    	Local lastSlice:Int = 0
+    	
+    	input = input.Replace( "\", "\\" )
+
+    	For Local i := 0 Until input.Length
+    		ch = input[i]
+    		If ch > 127 Or ch = 8 Or ch = 12
+	    		If ch > 127
+	    			insert = "\u" + IntToHexString(ch)
+	    		ElseIf ch = 8
+	    			insert = "\b"
+	    		ElseIf ch = 12
+	    			insert = "\f"
+	    		End
+	    		retString += input[lastSlice..i] + insert
+	    		lastSlice = i+1
+	    	End
+    	End
+    	retString += input[lastSlice..]
+    	
+    	Return retString.Replace( "/", "\/" ).Replace( "~q", "\~q" ).Replace( "~n", "\n" ).Replace( "~r", "\r" ).Replace( "~t", "\t" )
+    
+    End
+
+    Function IntToHexString:String( input:Int )
+    	Local retString:String = ""
+    	Local nibble:Int
+    	While input > 0 
+    		nibble = input & $F
+    		If nibble < 10
+    			retString = String.FromChar(48+nibble) + retString
+    		Else
+    			retString = String.FromChar(55+nibble) + retString
+    		End
+    		input Shr= 4
+    	End
+
+    	While retString.Length < 4
+    		retString = "0" + retString
+    	End
+    	Return retString
     End
 
 	Function ConvertJSONEscapes:String(input:String)
@@ -207,11 +250,12 @@ Class JSONData
 				Case 114 'r return
 					retString += "~r"			
 				Case 102 'f formfeed
-					retString += "{ff}"			
+					retString += String.FromChar(12)			
 				Case 98 'b backspace
-					retString += "{bs}"			
+					retString += String.FromChar(8)			
 				Case 117 'u unicode
-					retString += "{un}"			
+					retString += UnEscapeUnicode(input[escIndex+2..escIndex+6])	
+					escIndex += 4		
 			End
 			copyStartIndex = escIndex+2
 			escIndex = input.Find("\",copyStartIndex)
@@ -220,6 +264,25 @@ Class JSONData
 		retString += input[copyStartIndex..]
 
 		return retString
+	End
+	
+	Function HexCharToInt:Int(char:Int)
+		If char >= 48 and char <= 57 '0-9'
+			Return char-48
+		ElseIf char >= 65 And char <= 70 'A-F'
+			Return char - 55
+		ElseIf char >= 97 And char <= 102 'a-f'
+			Return char - 87
+		End
+	End
+
+	Function UnEscapeUnicode:String(hexString:String)
+		Local charCode = 0
+		For Local i:= 0 Until 4
+			charCode Shl= 4
+			charCode += HexCharToInt(hexString[i])
+		End
+		Return String.FromChar(charCode)
 	End
 End
 
