@@ -234,7 +234,8 @@ Class JSONDataType
 	Const JSON_STRING:Int = 5
 	Const JSON_BOOL:Int = 6
 	Const JSON_NULL:Int = 7
-	Const JSON_NON_DATA:Int = 8
+	Const JSON_OBJECT_MEMBER:Int = 8
+	Const JSON_NON_DATA:Int = 9
 End
 
 Class JSONDataItem Abstract
@@ -459,6 +460,36 @@ Class JSONArray Extends JSONDataItem
 	End
 End
 
+Class JSONObjectMember Extends JSONDataItem
+	Field name
+	Field dataItem:JSONDataItem
+
+	Method New(name:String, dataItem:JSONDataItem) 
+		dataType = JSONDataType.JSON_OBJECT_MEMBER
+		Self.dataItem = dataItem
+	End
+
+	Method ToBool:Bool()
+		Return dataItem.ToBool()
+	End
+	
+	Method ToInt:Int()
+		Return dataItem.ToInt()
+	End
+	
+	Method ToFloat:Float()
+		Return dataItem.ToFloat()
+	End
+	
+	Method ToString:String()
+		Return dataItem.ToString()
+	End
+
+	Method ToJSONString:String()
+		Return dataItem.ToJSONString()
+	End
+End
+
 Class JSONObject Extends JSONDataItem
 	Field values:StringMap<JSONDataItem> = New StringMap<JSONDataItem>()
 	
@@ -520,5 +551,33 @@ Class JSONObject Extends JSONDataItem
 			retString += "~q" + v.Key + "~q:" + v.Value
 		End
 		Return retString + "}"
+	End
+
+	Method Names:map.MapKeys<StringObject,JSONDataItem>()
+		Return values.Keys()
+	End
+	
+	Method Items:map.MapValues<StringObject,JSONDataItem>()
+		Return values.Values()
+	End
+
+	Method ObjectEnumerator:JSONObjectEnumerator()
+		Return New JSONObjectEnumerator(values.ObjectEnumerator())
+	End
+End
+
+Class JSONObjectEnumerator
+	Field enumerator:NodeEnumerator<StringObject,JSONDataItem>
+	Method New( enumerator:NodeEnumerator<StringObject,JSONDataItem> )
+		Self.enumerator = enumerator 
+	End
+
+	Method HasNext()
+		Return Self.enumerator.HasNext()
+	End
+	
+	Method NextObject:JSONObjectMember()
+		Local node:map.Node<StringObject,JSONDataItem> = enumerator.NextObject()
+		Return New JSONObjectMember(node.Key,node.Value)
 	End
 End
