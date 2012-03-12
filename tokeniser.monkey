@@ -230,58 +230,15 @@ Class JSONTokeniser
 	End
 
 	'No error trapping or anything like that
-	'A monkey wrapper for the native standard libraries for this stuff would be nice
 	Method ParseInteger:Int(str:String)
-		Local neg:Bool = False
-		Local result:Int = 0
-		Local index:Int = 0
-
-		If str[0] = 45 ' - char
-			neg = True
-			index = 1
-		End
-		For index = index Until str.Length
-			result *= 10
-			result += (str[index]-48)
-		End
-		If neg
-			Return -result
-		Else
-			Return result
-		End
+		Return Int(str)
 	End
 
 	'No error trapping or anything like that
 	'A monkey wrapper for the native standard libraries for this stuff would be nice
 	Method ParseFloat:Float(str:String)
-		Local neg:Bool = False
-		Local index:Int = 0
-		Local result:Float = 0.0
-		
-		If str[0] = 45 ' - char
-			neg = True
-			index = 1
-		End
-		Local decimal:Float = 0.0
-		For index = index Until str.Length
-			If str[index] = 46 ' . char
-				decimal = 0.1
-				Continue
-			End
-			If decimal > 0.0
-				result += (str[index]-48)*decimal
-				decimal *= 0.1
-			Else
-				result *= 10
-				result += (str[index]-48)
-			End
-		End
-		If neg
-			Return -result
-		Else
-			Return result
-		End	
-	End
+        Return Float(str)
+    End
 
 	Method IsDigit:Bool(char:Int)
 		Return( char >= 48 And char <= 58 )
