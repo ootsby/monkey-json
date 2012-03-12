@@ -521,6 +521,10 @@ Class JSONArray Extends JSONDataItem
 	Method ObjectEnumerator:list.Enumerator<JSONDataItem>()
 		Return values.ObjectEnumerator()
 	End
+    
+    Method Clear:Void()
+        values.Clear()
+    End
 End
 
 Class JSONObjectMember Extends JSONDataItem
@@ -588,6 +592,39 @@ Class JSONObject Extends JSONDataItem
 		Return values.Get(name)
 	End
 	
+    Method GetItem:String( name:String, defaultValue:String )
+		Local item:JSONDataItem = values.Get(name)
+        If item <> Null
+            Return item
+        End
+        Return defaultValue
+	End
+	
+    Method GetItem:Int( name:String, defaultValue:Int )
+		Local item:JSONDataItem = values.Get(name)
+        If item <> Null
+            Return item
+        End
+        Return defaultValue
+	End
+	
+    Method GetItem:Float( name:String, defaultValue:Float )
+		Local item:JSONDataItem = values.Get(name)
+        If item <> Null
+            Return item
+        End
+        Return defaultValue
+	End
+	
+    Method GetItem:Bool( name:String, defaultValue:Bool )
+		Local item:JSONDataItem = values.Get(name)
+        If item <> Null
+            Return item
+        End
+        Return defaultValue
+	End
+	
+    
 	Method ToJSONString:String()
 		Local retString:String = "{"
 		Local first:Bool = True
@@ -597,7 +634,7 @@ Class JSONObject Extends JSONDataItem
 			Else
 				retString += ","
 			End
-			retString += "~q" + JSONData.ConvertMonkeyEscapes(v.Key.ToString()) + "~q:" + v.Value.ToJSONString()
+			retString += "~q" + JSONData.ConvertMonkeyEscapes(v.Key()) + "~q:" + v.Value.ToJSONString()
 		End
 		Return retString + "}"
 	End
@@ -616,11 +653,15 @@ Class JSONObject Extends JSONDataItem
 		Return retString + "}"
 	End
 
-	Method Names:map.MapKeys<StringObject,JSONDataItem>()
+    Method Clear:Void()
+        values.Clear()
+    End
+    
+	Method Names:map.MapKeys<String,JSONDataItem>()
 		Return values.Keys()
 	End
 	
-	Method Items:map.MapValues<StringObject,JSONDataItem>()
+	Method Items:map.MapValues<String,JSONDataItem>()
 		Return values.Values()
 	End
 
