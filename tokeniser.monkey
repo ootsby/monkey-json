@@ -65,7 +65,11 @@ Class JSONToken
 			Case TOKEN_NULL
 				Return "NULL"
 			Default
-				Return StringObject(value) 
+                If value
+				    Return StringObject(value)
+                Else
+                    Return "Null value"
+                End 
 		End	
 	End
 
@@ -235,7 +239,6 @@ Class JSONTokeniser
 	End
 
 	'No error trapping or anything like that
-	'A monkey wrapper for the native standard libraries for this stuff would be nice
 	Method ParseFloat:Float(str:String)
         Return Float(str)
     End

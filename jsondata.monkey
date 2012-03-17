@@ -27,6 +27,26 @@
 #end
 
 Import json
+Class StringBuilder
+    Field retStrings:String[]
+    Field index = 0
+    
+    Method New( initialSize:Int = 100 )
+        retStrings = New String[initialSize]
+    End
+    
+    Method AddString:Void( add:String )
+        If index = retStrings.Length
+            retStrings = retStrings.Resize(retStrings.Length() * 2) 
+        End
+        retStrings[index] = add
+        index += 1
+    End
+    
+    Method ToString:String()
+        Return "".Join(retStrings)
+    End    
+End
 
 Class JSONData
 
@@ -182,88 +202,102 @@ Class JSONData
 		Return jsonArray
 	End	
 
-	Function ConvertMonkeyEscapes:String( input:String )
+	Function EscapeJSON:String( input:String )
     	Local ch:Int
-    	Local retString:String
-    	Local insert:String = ""
+    	Local retString:StringBuilder = New StringBuilder(input.Length())
     	Local lastSlice:Int = 0
     	
     	input = input.Replace( "\", "\\" )
 
     	For Local i := 0 Until input.Length
     		ch = input[i]
-    		If ch > 127 Or ch = 8 Or ch = 12
-	    		If ch > 127
-	    			insert = "\u" + IntToHexString(ch)
-	    		ElseIf ch = 8
-	    			insert = "\b"
-	    		ElseIf ch = 12
-	    			insert = "\f"
-	    		End
-	    		retString += input[lastSlice..i] + insert
+    		If ch > 127 Or ch < 32 Or ch = 34 Or ch = 47
+	    		retString.AddString(input[lastSlice..i])
+                If ch = 34 'quote
+                    retString.AddString("\~q")
+                ElseIf ch = 10 'newline
+                    retString.AddString("\n")
+                ElseIf ch = 13 'return
+                    retString.AddString("\r")
+                ElseIf ch = 47 'forward slash
+                    retString.AddString("\/")
+                ElseIf ch > 127 'unicode
+	    		    retString.AddString("\u")
+	    			retString.AddString(IntToHexString(ch))
+	    		ElseIf ch = 8 'backspace
+	    			retString.AddString("\b")
+	    		ElseIf ch = 12 'linefeed
+	    			retString.AddString("\f")
+                ElseIf ch = 9 'tab
+	    			retString.AddString("\t")
+                End
 	    		lastSlice = i+1
 	    	End
     	End
-    	retString += input[lastSlice..]
+    	retString.AddString(input[lastSlice..])
     	
-    	Return retString.Replace( "/", "\/" ).Replace( "~q", "\~q" ).Replace( "~n", "\n" ).Replace( "~r", "\r" ).Replace( "~t", "\t" )
-    
+    	Return retString.ToString()
     End
 
     Function IntToHexString:String( input:Int )
-    	Local retString:String = ""
+    	Local retString:String[] = New String[4]
+        Local index = 3
     	Local nibble:Int
     	While input > 0 
     		nibble = input & $F
     		If nibble < 10
-    			retString = String.FromChar(48+nibble) + retString
+    			retString[index] = String.FromChar(48+nibble)
     		Else
-    			retString = String.FromChar(55+nibble) + retString
+    			retString[index] = String.FromChar(55+nibble)
     		End
+            index -=1
     		input Shr= 4
     	End
 
-    	While retString.Length < 4
-    		retString = "0" + retString
+    	While index >= 0
+    		retString[index] = "0"
+            index -= 1
     	End
-    	Return retString
+    	Return "".Join(retString)
     End
 
-	Function ConvertJSONEscapes:String(input:String)
+	Function UnEscapeJSON:String(input:String)
 		Local escIndex:Int = input.Find("\")
 		Local copyStartIndex:Int = 0
-		Local retString:String = ""
-
+		Local retString:StringBuilder = New StringBuilder(input.Length())
+        
 		While escIndex <> -1
-			retString += input[copyStartIndex..escIndex]
-			Select input[escIndex+1]
+			retString.AddString( input[copyStartIndex..escIndex] )
+            Select input[escIndex+1]
 				Case 110 'n - newline
-					retString += "~n"
+					retString.AddString( "~n" )
 				Case 34 'quote
-					retString += "~q"
+					retString.AddString( "~q" )
 				Case 116 'tab
-					retString += "~t"
+					retString.AddString( "~t" )
 				Case 92 '\
-					retString += "\"
+					retString.AddString( "\" )
 				Case 47 '/
-					retString += "/"
+					retString.AddString( "/" )
 				Case 114 'r return
-					retString += "~r"			
+					retString.AddString( "~r" )			
 				Case 102 'f formfeed
-					retString += String.FromChar(12)			
+					retString.AddString( String.FromChar(12) )			
 				Case 98 'b backspace
-					retString += String.FromChar(8)			
+					retString.AddString( String.FromChar(8)	)		
 				Case 117 'u unicode
-					retString += UnEscapeUnicode(input[escIndex+2..escIndex+6])	
+					retString.AddString( UnEscapeUnicode(input[escIndex+2..escIndex+6])	)
 					escIndex += 4		
 			End
-			copyStartIndex = escIndex+2
+            copyStartIndex = escIndex+2
 			escIndex = input.Find("\",copyStartIndex)
 		End
 
-		retString += input[copyStartIndex..]
+		If copyStartIndex < input.Length
+            retString.AddString( input[copyStartIndex..] )
+        End
 
-		return retString
+		Return retString.ToString()
 	End
 	
 	Function HexCharToInt:Int(char:Int)
@@ -370,7 +404,7 @@ Class JSONFloat Extends JSONDataItem
 	End
 
 	Method ToString:String()
-		Return "" + value
+		Return String(value)
 	End
 End
 
@@ -391,7 +425,7 @@ Class JSONInteger Extends JSONDataItem
 	End
 
 	Method ToString:String()
-		Return "" + value
+		Return String(value)
 	End
 End
 
@@ -403,10 +437,10 @@ Class JSONString Extends JSONDataItem
 		dataType = JSONDataType.JSON_STRING
 		If isMonkeyString
 			Self.monkeyString = value
-			Self.value = JSONData.ConvertMonkeyEscapes(value)
+			Self.value = JSONData.EscapeJSON(value)
 		Else
 			Self.value = value
-			Self.monkeyString = JSONData.ConvertJSONEscapes(value)
+			Self.monkeyString = JSONData.UnEscapeJSON(value)
 		End
 	End
 
@@ -491,31 +525,41 @@ Class JSONArray Extends JSONDataItem
 	End
 	
 	Method ToJSONString:String()
-		Local retString:String = "["
+		Local retString:StringBuilder = New StringBuilder(values.Count()*2+5)
 		Local first:Bool = True
+        retString.AddString("[")
 		For Local v:= Eachin values
 			If first
 				first = False
 			Else
-				retString += ","
+				retString.AddString(",")
 			End
-			retString += v.ToJSONString()
+			retString.AddString(v.ToJSONString())
 		End
-		Return retString + "]"
+        
+        retString.AddString("]")
+        
+		Return retString.ToString()
 	End
 	
 	Method ToString:String()
-		Local retString:String = "["
-		Local first:Bool = True
-		For Local v:= Eachin values
+		Local retString:StringBuilder = New StringBuilder(values.Count()*2+5)
+        Local first:Bool = True
+        
+		retString.AddString("[")
+        
+        For Local v:= Eachin values
 			If first
 				first = False
 			Else
-				retString += ","
+				retString.AddString(",")
 			End
-			retString += v
+			retString.AddString(v)
 		End
-		Return retString + "]"
+        
+        retString.AddString("]")
+		
+        Return retString.ToString()
 	End
 
 	Method ObjectEnumerator:list.Enumerator<JSONDataItem>()
@@ -565,23 +609,23 @@ Class JSONObject Extends JSONDataItem
 	End
 
 	Method AddPrim( name:String, value:Bool )
-		values.Set(JSONData.ConvertJSONEscapes(name),JSONData.CreateJSONDataItem(value))
+		values.Set(JSONData.UnEscapeJSON(name),JSONData.CreateJSONDataItem(value))
 	End
 	
 	Method AddPrim( name:String, value:Int )
-		values.Set(JSONData.ConvertJSONEscapes(name),JSONData.CreateJSONDataItem(value))
+		values.Set(JSONData.UnEscapeJSON(name),JSONData.CreateJSONDataItem(value))
 	End
 	
 	Method AddPrim( name:String, value:Float )
-		values.Set(JSONData.ConvertJSONEscapes(name),JSONData.CreateJSONDataItem(value))
+		values.Set(JSONData.UnEscapeJSON(name),JSONData.CreateJSONDataItem(value))
 	End
 	
 	Method AddPrim( name:String, value:String )
-		values.Set(JSONData.ConvertJSONEscapes(name),JSONData.CreateJSONDataItem(value))
+		values.Set(JSONData.UnEscapeJSON(name),JSONData.CreateJSONDataItem(value))
 	End
 	
 	Method AddItem( name:String, dataItem:JSONDataItem )
-		values.Set(JSONData.ConvertJSONEscapes(name),dataItem)
+		values.Set(JSONData.UnEscapeJSON(name),dataItem)
 	End
 	
 	Method RemoveItem( name:String )
@@ -626,31 +670,45 @@ Class JSONObject Extends JSONDataItem
 	
     
 	Method ToJSONString:String()
-		Local retString:String = "{"
+		Local retString:StringBuilder = New StringBuilder(values.Count()*5+5)
 		Local first:Bool = True
-		For Local v:= Eachin values
+		
+        retString.AddString("{")
+        
+        For Local v:= Eachin values
 			If first
 				first = False
 			Else
-				retString += ","
+				retString.AddString(",")
 			End
-			retString += "~q" + JSONData.ConvertMonkeyEscapes(v.Key()) + "~q:" + v.Value.ToJSONString()
+			retString.AddString("~q")
+            retString.AddString(JSONData.EscapeJSON(v.Key()))
+            retString.AddString("~q:")
+            retString.AddString(v.Value.ToJSONString())
 		End
-		Return retString + "}"
+	    retString.AddString("}")
+		Return retString.ToString()
 	End
 
 	Method ToString:String()
-		Local retString:String = "{"
+		Local retString:StringBuilder = New StringBuilder(values.Count()*5+5)
 		Local first:Bool = True
+        
+        retString.AddString("{")
+        
 		For Local v:= Eachin values
 			If first
 				first = False
 			Else
-				retString += ","
+				retString.AddString(",")
 			End
-			retString += "~q" + v.Key + "~q:" + v.Value
+			retString.AddString("~q")
+            retString.AddString(v.Key)
+            retString.AddString("~q:")
+            retString.AddString(v.Value)
 		End
-		Return retString + "}"
+        retString.AddString("}")
+		Return retString.ToString()
 	End
 
     Method Clear:Void()
