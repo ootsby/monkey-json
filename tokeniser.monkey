@@ -108,7 +108,7 @@ Class JSONTokeniser
 	Field jsonString:String = ""
 	Field stringIndex:Int = 0
 	Field char:Int = 0
-	Field charStr:String = ""
+	'Field charStr:String = ""
 	Field silent:Bool = False
 
 	Public
@@ -127,36 +127,36 @@ Class JSONTokeniser
 		Local retToken:JSONToken
 		SkipIgnored()
 
-		Select charStr
+		Select char
 
-			Case "{"
-				retToken = JSONToken.CreateToken(JSONToken.TOKEN_OPEN_CURLY,charStr)
-			Case "}"
-				retToken = JSONToken.CreateToken(JSONToken.TOKEN_CLOSE_CURLY,charStr)
-			Case "["
-				retToken = JSONToken.CreateToken(JSONToken.TOKEN_OPEN_SQUARE,charStr)
-			Case "]"
-				retToken = JSONToken.CreateToken(JSONToken.TOKEN_CLOSE_SQUARE,charStr)
-			Case ","
-				retToken = JSONToken.CreateToken(JSONToken.TOKEN_COMMA,charStr)
-			Case ":"
-				retToken = JSONToken.CreateToken(JSONToken.TOKEN_COLON,charStr)
-			Case "t"
-				If jsonString[stringIndex..stringIndex+3] = "rue"
+			Case ASCIICodes.CHR_OPEN_CURLY
+				retToken = JSONToken.CreateToken(JSONToken.TOKEN_OPEN_CURLY,"{")
+			Case ASCIICodes.CHR_CLOSE_CURLY
+				retToken = JSONToken.CreateToken(JSONToken.TOKEN_CLOSE_CURLY,"}")
+			Case ASCIICodes.CHR_OPEN_SQUARE
+				retToken = JSONToken.CreateToken(JSONToken.TOKEN_OPEN_SQUARE,"[")
+			Case ASCIICodes.CHR_CLOSE_SQUARE
+				retToken = JSONToken.CreateToken(JSONToken.TOKEN_CLOSE_SQUARE,"]")
+			Case ASCIICodes.CHR_COMMA
+				retToken = JSONToken.CreateToken(JSONToken.TOKEN_COMMA,",")
+			Case ASCIICodes.CHR_COLON
+				retToken = JSONToken.CreateToken(JSONToken.TOKEN_COLON,":")
+			Case ASCIICodes.CHR_LOWER_T
+				If jsonString[stringIndex..stringIndex+3].Compare("rue") = 0
 					stringIndex += 3
 					retToken = JSONToken.CreateToken(JSONToken.TOKEN_TRUE,"true")
 				End
-			Case "f"
-				If jsonString[stringIndex..stringIndex+4] = "alse"
+			Case ASCIICodes.CHR_LOWER_F
+				If jsonString[stringIndex..stringIndex+4].Compare("alse") = 0
 					stringIndex += 4
 					retToken = JSONToken.CreateToken(JSONToken.TOKEN_FALSE,"false")
 				End
-			Case "n"
-				If jsonString[stringIndex..stringIndex+3] = "ull"
+			Case ASCIICodes.CHR_LOWER_N
+				If jsonString[stringIndex..stringIndex+3].Compare("ull") = 0
 					stringIndex += 3
 					retToken = JSONToken.CreateToken(JSONToken.TOKEN_NULL,"null")
 				End
-			Case "~q"
+			Case ASCIICodes.CHR_DOUBLE_QUOTE
 				Local startIndex:Int = stringIndex
 				Repeat
 					Local endIndex:Int = jsonString.Find("~q",stringIndex)
@@ -174,9 +174,9 @@ Class JSONTokeniser
 				Forever
 			Default
 				'Is it a Number?
-				If charStr = "-" Or IsDigit(char)
-					Return ParseNumberToken(charStr)
-				Else If charStr = ""
+				If char = ASCIICodes.CHR_HYPHEN Or IsDigit(char)
+					Return ParseNumberToken(char)
+				Else If char = ASCIICodes.CHR_NUL
 					Return Null 'End of string so just leave'
 				End
 								
@@ -193,23 +193,24 @@ Class JSONTokeniser
 
 	Private
 	
-	Method NextChar:String()
+	Method NextChar:Int()
 		If stringIndex = jsonString.Length
-			Return ""
+			char = ASCIICodes.CHR_NUL
+            Return char
 		End
 		char = jsonString[stringIndex]
-		charStr = String.FromChar(char)
 		stringIndex += 1
-		return charStr
+		return char
 	End
 
-	Method ParseNumberToken:JSONToken(firstChar:String)
+	Method ParseNumberToken:JSONToken(firstChar:Int)
 		Local index:Int = stringIndex-1
 		'First just get the full string
-		While charStr <> " " And charStr <> "," And charStr <> "}" And charStr <> "]"
+		While char <> ASCIICodes.CHR_SPACE And char <> ASCIICodes.CHR_COMMA And 
+                char <> ASCIICodes.CHR_CLOSE_CURLY And char <> ASCIICodes.CHR_CLOSE_SQUARE
 			NextChar()
 		End
-		If charStr = ""
+		If char = ASCIICodes.CHR_NUL
 			ParseFailure("Unterminated Number")
 			Return JSONToken.CreateToken(JSONToken.TOKEN_UNKNOWN,Null)
 		End
@@ -258,7 +259,7 @@ Class JSONTokeniser
 
 	Method SkipWhitespace()
 		Local index:Int = stringIndex
-		While charStr = "~t" Or charStr = " " Or charStr = "~n" Or charStr = "~r"
+		While char <= ASCIICodes.CHR_SPACE
 			NextChar()
 		End
 		Return stringIndex-index
@@ -266,23 +267,22 @@ Class JSONTokeniser
 
 	Method SkipComments()
 		Local index:Int = stringIndex
-		If charStr = "/"
+		If char = ASCIICodes.CHR_FORWARD_SLASH
 			NextChar()
-			If charStr = "/"
-				While charStr <> "~n" And charStr <> ""
+			If char = ASCIICodes.CHR_FORWARD_SLASH
+				While char <> ASCIICodes.CHR_CR And char <> ASCIICodes.CHR_LF
 					NextChar()
 				End
-				'While char = "~n" Or char = "~r"
-				''	NextChar()
-				'End
-			ElseIf charStr = "*"
+			ElseIf char = ASCIICodes.CHR_ASTERISK
 				Repeat
-					If NextChar() = "*"
-						If NextChar() = "/"
+					NextChar()
+                    If char = ASCIICodes.CHR_ASTERISK
+						NextChar()
+                        If char = ASCIICodes.CHR_FORWARD_SLASH
 							Exit
 						End
 					End
-					If char = ""
+					If char = ASCIICodes.CHR_NUL
 						ParseFailure("Unterminated comment")
 						Exit
 					End
@@ -304,4 +304,139 @@ Class JSONTokeniser
 		Print GetCurrentSectionString()
 		stringIndex = jsonString.Length
 	End
+End
+
+Class ASCIICodes
+    'Liberated from Diddy and then tweaked
+    ' control characters
+    Const CHR_NUL:Int = 0       ' Null character
+    Const CHR_SOH:Int = 1       ' Start of Heading
+    Const CHR_STX:Int = 2       ' Start of Text
+    Const CHR_ETX:Int = 3       ' End of Text
+    Const CHR_EOT:Int = 4       ' End of Transmission
+    Const CHR_ENQ:Int = 5       ' Enquiry
+    Const CHR_ACK:Int = 6       ' Acknowledgment
+    Const CHR_BEL:Int = 7       ' Bell
+    Const CHR_BACKSPACE:Int = 8 ' Backspace
+    Const CHR_TAB:Int = 9       ' Horizontal tab
+    Const CHR_LF:Int = 10       ' Linefeed
+    Const CHR_VTAB:Int = 11     ' Vertical tab
+    Const CHR_FF:Int = 12       ' Form feed
+    Const CHR_CR:Int = 13       ' Carriage return
+    Const CHR_SO:Int = 14       ' Shift Out
+    Const CHR_SI:Int = 15       ' Shift In
+    Const CHR_DLE:Int = 16      ' Data Line Escape
+    Const CHR_DC1:Int = 17      ' Device Control 1
+    Const CHR_DC2:Int = 18      ' Device Control 2
+    Const CHR_DC3:Int = 19      ' Device Control 3
+    Const CHR_DC4:Int = 20      ' Device Control 4
+    Const CHR_NAK:Int = 21      ' Negative Acknowledgment
+    Const CHR_SYN:Int = 22      ' Synchronous Idle
+    Const CHR_ETB:Int = 23      ' End of Transmit Block
+    Const CHR_CAN:Int = 24      ' Cancel
+    Const CHR_EM:Int = 25       ' End of Medium
+    Const CHR_SUB:Int = 26      ' Substitute
+    Const CHR_ESCAPE:Int = 27   ' Escape
+    Const CHR_FS:Int = 28       ' File separator
+    Const CHR_GS:Int = 29       ' Group separator
+    Const CHR_RS:Int = 30       ' Record separator
+    Const CHR_US:Int = 31       ' Unit separator
+    
+    ' visible characters
+    Const CHR_SPACE:Int = 32                ' '
+    Const CHR_EXCLAMATION:Int = 33          '!'
+    Const CHR_DOUBLE_QUOTE:Int = 34         '"'
+    Const CHR_HASH:Int = 35                 '#'
+    Const CHR_DOLLAR:Int = 36               '$'
+    Const CHR_PERCENT:Int = 37              '%'
+    Const CHR_AMPERSAND:Int = 38            '&'
+    Const CHR_SINGLE_QUOTE:Int = 39         '''
+    Const CHR_OPEN_ROUND:Int = 40     '('
+    Const CHR_CLOSE_ROUND:Int = 41    ')'
+    Const CHR_ASTERISK:Int = 42             '*'
+    Const CHR_PLUS:Int = 43                 '+'
+    Const CHR_COMMA:Int = 44                ','
+    Const CHR_HYPHEN:Int = 45               '-'
+    Const CHR_PERIOD:Int = 46               '.'
+    Const CHR_FORWARD_SLASH:Int = 47                '/'
+    Const CHR_0:Int = 48
+    Const CHR_1:Int = 49
+    Const CHR_2:Int = 50
+    Const CHR_3:Int = 51
+    Const CHR_4:Int = 52
+    Const CHR_5:Int = 53
+    Const CHR_6:Int = 54
+    Const CHR_7:Int = 55
+    Const CHR_8:Int = 56
+    Const CHR_9:Int = 57
+    Const CHR_COLON:Int = 58        ':'
+    Const CHR_SEMICOLON:Int = 59    ';'
+    Const CHR_LESS_THAN:Int = 60    '<'
+    Const CHR_EQUALS:Int = 61       '='
+    Const CHR_GREATER_THAN:Int = 62 '>'
+    Const CHR_QUESTION:Int = 63     '?'
+    Const CHR_AT:Int = 64           '@'
+    Const CHR_UPPER_A:Int = 65
+    Const CHR_UPPER_B:Int = 66
+    Const CHR_UPPER_C:Int = 67
+    Const CHR_UPPER_D:Int = 68
+    Const CHR_UPPER_E:Int = 69
+    Const CHR_UPPER_F:Int = 70
+    Const CHR_UPPER_G:Int = 71
+    Const CHR_UPPER_H:Int = 72
+    Const CHR_UPPER_I:Int = 73
+    Const CHR_UPPER_J:Int = 74
+    Const CHR_UPPER_K:Int = 75
+    Const CHR_UPPER_L:Int = 76
+    Const CHR_UPPER_M:Int = 77
+    Const CHR_UPPER_N:Int = 78
+    Const CHR_UPPER_O:Int = 79
+    Const CHR_UPPER_P:Int = 80
+    Const CHR_UPPER_Q:Int = 81
+    Const CHR_UPPER_R:Int = 82
+    Const CHR_UPPER_S:Int = 83
+    Const CHR_UPPER_T:Int = 84
+    Const CHR_UPPER_U:Int = 85
+    Const CHR_UPPER_V:Int = 86
+    Const CHR_UPPER_W:Int = 87
+    Const CHR_UPPER_X:Int = 88
+    Const CHR_UPPER_Y:Int = 89
+    Const CHR_UPPER_Z:Int = 90
+    Const CHR_OPEN_SQUARE:Int = 91     '['
+    Const CHR_BACKSLASH:Int = 92        '\'
+    Const CHR_CLOSE_SQUARE:Int = 93    ']'
+    Const CHR_CIRCUMFLEX:Int = 94       '^'
+    Const CHR_UNDERSCORE:Int = 95       '_'
+    Const CHR_BACKTICK:Int = 96         '`'
+    Const CHR_LOWER_A:Int = 97
+    Const CHR_LOWER_B:Int = 98
+    Const CHR_LOWER_C:Int = 99
+    Const CHR_LOWER_D:Int = 100
+    Const CHR_LOWER_E:Int = 101
+    Const CHR_LOWER_F:Int = 102
+    Const CHR_LOWER_G:Int = 103
+    Const CHR_LOWER_H:Int = 104
+    Const CHR_LOWER_I:Int = 105
+    Const CHR_LOWER_J:Int = 106
+    Const CHR_LOWER_K:Int = 107
+    Const CHR_LOWER_L:Int = 108
+    Const CHR_LOWER_M:Int = 109
+    Const CHR_LOWER_N:Int = 110
+    Const CHR_LOWER_O:Int = 111
+    Const CHR_LOWER_P:Int = 112
+    Const CHR_LOWER_Q:Int = 113
+    Const CHR_LOWER_R:Int = 114
+    Const CHR_LOWER_S:Int = 115
+    Const CHR_LOWER_T:Int = 116
+    Const CHR_LOWER_U:Int = 117
+    Const CHR_LOWER_V:Int = 118
+    Const CHR_LOWER_W:Int = 119
+    Const CHR_LOWER_X:Int = 120
+    Const CHR_LOWER_Y:Int = 121
+    Const CHR_LOWER_Z:Int = 122
+    Const CHR_OPEN_CURLY:Int = 123  '{'
+    Const CHR_PIPE:Int = 124        '|'
+    Const CHR_CLOSE_CURLY:Int = 125 '}'
+    Const CHR_TILDE:Int = 126       '~'
+    Const CHR_DELETE:Int = 127
 End
