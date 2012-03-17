@@ -207,11 +207,9 @@ Class JSONData
     	Local retString:StringBuilder = New StringBuilder(input.Length())
     	Local lastSlice:Int = 0
     	
-    	input = input.Replace( "\", "\\" )
-
     	For Local i := 0 Until input.Length
     		ch = input[i]
-    		If ch > 127 Or ch < 32 Or ch = 34 Or ch = 47
+    		If ch > 127 Or ch < 32 Or ch = 92 Or ch = 34 Or ch = 47
 	    		retString.AddString(input[lastSlice..i])
                 If ch = 34 'quote
                     retString.AddString("\~q")
@@ -219,6 +217,8 @@ Class JSONData
                     retString.AddString("\n")
                 ElseIf ch = 13 'return
                     retString.AddString("\r")
+                ElseIf ch = 92 'back slash
+                    retString.AddString("\\")
                 ElseIf ch = 47 'forward slash
                     retString.AddString("\/")
                 ElseIf ch > 127 'unicode
