@@ -27,6 +27,9 @@
 #end
 
 Import json
+
+Private
+
 Class StringBuilder
     Field retStrings:String[]
     Field index = 0
@@ -44,9 +47,15 @@ Class StringBuilder
     End
     
     Method ToString:String()
-        Return "".Join(retStrings)
+        If index < 2
+            Return retStrings[0]
+        Else
+            Return "".Join(retStrings[0..index])
+        End
     End    
 End
+
+Public
 
 Class JSONData
 
@@ -61,7 +70,9 @@ Class JSONData
 			
 		If data = Null
 			Return New JSONDataError("Unknown JSON error.", tokeniser.GetCurrentSectionString())
-		ElseIf data.dataType <> JSONDataType.JSON_ERROR And data.dataType <> JSONDataItem.JSONDataType.JSON_OBJECT And data.dataType <> JSONDataItem.JSONDataType.JSON_ARRAY
+		ElseIf data.dataType = JSONDataType.JSON_ERROR
+            Print data.ToString()
+        ElseIf data.dataType <> JSONDataItem.JSONDataType.JSON_OBJECT And data.dataType <> JSONDataItem.JSONDataType.JSON_ARRAY
 			Return New JSONDataError("JSON Document malformed. Root node is not an object or an array", tokeniser.GetCurrentSectionString())
 		End
 
@@ -96,7 +107,9 @@ Class JSONData
 			Case JSONToken.TOKEN_STRING
 				Return New JSONString(StringObject(token.value))
 			Case JSONToken.TOKEN_FLOAT
-				Return New JSONFloat(FloatObject(token.value))
+				Return New JSONFloat((FloatObject(token.value)).ToFloat())
+			Case JSONToken.TOKEN_UNPARSED_FLOAT
+				Return New JSONFloat((StringObject(token.value)).ToString())
 			Case JSONToken.TOKEN_INTEGER
 				Return New JSONInteger(IntObject(token.value))
 			Case JSONToken.TOKEN_TRUE
@@ -158,7 +171,6 @@ Class JSONData
 				End
 			End
 			data1 = JSONData.GetJSONDataItem(tokeniser)
-			
 		Forever
 
 		Return jsonObject
@@ -263,6 +275,11 @@ Class JSONData
 
 	Function UnEscapeJSON:String(input:String)
 		Local escIndex:Int = input.Find("\")
+        
+        If escIndex = -1
+            Return input
+        End
+        
 		Local copyStartIndex:Int = 0
 		Local retString:StringBuilder = New StringBuilder(input.Length())
         
@@ -389,22 +406,41 @@ End
 
 Class JSONFloat Extends JSONDataItem
 	Field value:Float
-	
+	Field unparsed:String
+    
 	Method New(value:Float) 
 		dataType = JSONDataType.JSON_FLOAT 
 		Self.value = value
 	End
 
+    'This constructor creates a float container that stores the unparsed
+    'value string. This is to spread the load of parsing the data
+    'as parsing floats is very expensive on Android.
+    Method New(unparsed:String) 
+		dataType = JSONDataType.JSON_FLOAT 
+		Self.unparsed = unparsed
+	End
+    
+    Method Parse:Void()
+        If Not unparsed
+            Return
+        End
+        value = Float(unparsed)
+    End
+    
 	Method ToInt:Int()
+        Parse()
 		Return Int(value)
 	End
 
 	Method ToFloat:Float()
-		Return value
+		Parse()
+        Return value
 	End
 
 	Method ToString:String()
-		Return String(value)
+		Parse()
+        Return String(value)
 	End
 End
 

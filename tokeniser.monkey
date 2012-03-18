@@ -40,7 +40,8 @@ Class JSONToken
 	Const TOKEN_NULL:Int = 9
 	Const TOKEN_STRING:Int = 10
 	Const TOKEN_FLOAT:Int = 11
-	Const TOKEN_INTEGER:Int = 12
+	Const TOKEN_UNPARSED_FLOAT:Int = 12
+	Const TOKEN_INTEGER:Int = 13
 
 	Field tokenType:Int
 	Field value:Object
@@ -108,7 +109,6 @@ Class JSONTokeniser
 	Field jsonString:String = ""
 	Field stringIndex:Int = 0
 	Field char:Int = 0
-	'Field charStr:String = ""
 	Field silent:Bool = False
 
 	Public
@@ -127,7 +127,7 @@ Class JSONTokeniser
 		Local retToken:JSONToken
 		SkipIgnored()
 
-		Select char
+        Select char
 
 			Case ASCIICodes.CHR_OPEN_CURLY
 				retToken = JSONToken.CreateToken(JSONToken.TOKEN_OPEN_CURLY,"{")
@@ -158,31 +158,28 @@ Class JSONTokeniser
 				End
 			Case ASCIICodes.CHR_DOUBLE_QUOTE
 				Local startIndex:Int = stringIndex
-				Repeat
-					Local endIndex:Int = jsonString.Find("~q",stringIndex)
-					If endIndex = -1
-						ParseFailure("Unterminated string")
-						Exit
-					End
-					If jsonString[endIndex-1] <> 92
-						retToken = JSONToken.CreateToken(JSONToken.TOKEN_STRING,jsonString[startIndex..endIndex])
-						stringIndex = endIndex+1
-						Exit
-					End
-					stringIndex = endIndex+1
+        		Local endIndex:Int = jsonString.Find("~q",stringIndex)
+                While endIndex <> -1 And jsonString[endIndex-1] = ASCIICodes.CHR_BACKSLASH
+                    endIndex = jsonString.Find("~q",endIndex+1)
+                End
+                If endIndex = -1
+                    ParseFailure("Unterminated string")
+                End
+				
+                retToken = JSONToken.CreateToken(JSONToken.TOKEN_STRING,jsonString[startIndex..endIndex])
+				stringIndex = endIndex+1
 						
-				Forever
 			Default
 				'Is it a Number?
 				If char = ASCIICodes.CHR_HYPHEN Or IsDigit(char)
-					Return ParseNumberToken(char)
+					Return ParseNumberToken(char) 'We return here because ParseNumberToken moves the token pointer forward
 				Else If char = ASCIICodes.CHR_NUL
 					Return Null 'End of string so just leave'
 				End
 								
 		End
 		If Not retToken
-			ParseFailure("Unknown token")
+			ParseFailure("Unknown token, char: " + String.FromChar(char))
 			retToken = JSONToken.CreateToken(JSONToken.TOKEN_UNKNOWN,Null)
 		Else
 			NextChar()
@@ -215,19 +212,10 @@ Class JSONTokeniser
 			Return JSONToken.CreateToken(JSONToken.TOKEN_UNKNOWN,Null)
 		End
 
-		Local numberString:String = jsonString[index..stringIndex-1].ToLower()
-		Local exponent:String
-		index = numberString.Find("e")
-		If index <> -1
-			exponent = numberString[index+1..]
-			numberString = numberString[..index]
-		End
-		If exponent Or numberString.Find(".") <> -1
-			Local value:Float = ParseFloat(numberString)
-			If exponent
-				value *= Pow(10,ParseFloat(exponent))
-			End
-			Return JSONToken.CreateToken(JSONToken.TOKEN_FLOAT,value)
+		Local numberString:String = jsonString[index..stringIndex-1]
+		
+		If numberString.Find(".") <> -1 Or numberString.Find("e") <> -1 Or numberString.Find("E") <> -1
+		    Return JSONToken.CreateToken(JSONToken.TOKEN_UNPARSED_FLOAT,numberString)
 		Else
 			Local value:Int = ParseInteger(numberString)
 			Return JSONToken.CreateToken(JSONToken.TOKEN_INTEGER,value)
