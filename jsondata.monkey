@@ -760,13 +760,13 @@ Class JSONObject Extends JSONDataItem
 	End
 
 	Method ObjectEnumerator:JSONObjectEnumerator()
-		Return New JSONObjectEnumerator(values.ObjectEnumerator())
+		Return New JSONObjectEnumerator(NodeEnumerator<String,JSONDataItem>(values.ObjectEnumerator()))
 	End
 End
 
 Class JSONObjectEnumerator
-	Field enumerator:NodeEnumerator<StringObject,JSONDataItem>
-	Method New( enumerator:NodeEnumerator<StringObject,JSONDataItem> )
+	Field enumerator:NodeEnumerator<String,JSONDataItem>
+	Method New( enumerator:NodeEnumerator<String,JSONDataItem> )
 		Self.enumerator = enumerator 
 	End
 
@@ -775,7 +775,7 @@ Class JSONObjectEnumerator
 	End
 	
 	Method NextObject:JSONObjectMember()
-		Local node:map.Node<StringObject,JSONDataItem> = enumerator.NextObject()
+		Local node:map.Node<String,JSONDataItem> = enumerator.NextObject()
 		Return New JSONObjectMember(node.Key,node.Value)
 	End
 End
