@@ -35,6 +35,9 @@ Class StringBuilder
     Field index = 0
     
     Method New( initialSize:Int = 100 )
+        If initialSize < 1
+            initialSize = 1
+        End
         retStrings = New String[initialSize]
     End
     
@@ -466,26 +469,32 @@ Class JSONInteger Extends JSONDataItem
 End
 
 Class JSONString Extends JSONDataItem
-	Field value:String
-	Field monkeyString:String 
-
-	Method New(value:String, isMonkeyString:Bool = False) 
+	Private
+    
+    Field value:String
+    Field jsonReady:String = ""
+	
+    Public
+    
+	Method New(value:String, isMonkeyString:Bool = True) 
 		dataType = JSONDataType.JSON_STRING
-		If isMonkeyString
-			Self.monkeyString = value
-			Self.value = JSONData.EscapeJSON(value)
+		If Not isMonkeyString
+			Self.value = JSONData.UnEscapeJSON(value)
+            jsonReady = "~q"+value+"~q"
 		Else
-			Self.value = value
-			Self.monkeyString = JSONData.UnEscapeJSON(value)
-		End
+            Self.value = value
+        End
 	End
 
 	Method ToJSONString:String()
-		Return "~q"+value+"~q"
+        If jsonReady = ""
+            jsonReady = "~q"+JSONData.EscapeJSON(value)+"~q"
+        End
+		Return jsonReady
 	End
 
 	Method ToString:String()
-		Return monkeyString
+		Return value
 	End
 
 End
@@ -645,23 +654,23 @@ Class JSONObject Extends JSONDataItem
 	End
 
 	Method AddPrim( name:String, value:Bool )
-		values.Set(JSONData.UnEscapeJSON(name),JSONData.CreateJSONDataItem(value))
+		values.Set(name,JSONData.CreateJSONDataItem(value))
 	End
 	
 	Method AddPrim( name:String, value:Int )
-		values.Set(JSONData.UnEscapeJSON(name),JSONData.CreateJSONDataItem(value))
+		values.Set(name,JSONData.CreateJSONDataItem(value))
 	End
 	
 	Method AddPrim( name:String, value:Float )
-		values.Set(JSONData.UnEscapeJSON(name),JSONData.CreateJSONDataItem(value))
+		values.Set(name,JSONData.CreateJSONDataItem(value))
 	End
 	
 	Method AddPrim( name:String, value:String )
-		values.Set(JSONData.UnEscapeJSON(name),JSONData.CreateJSONDataItem(value))
+		values.Set(name,JSONData.CreateJSONDataItem(value))
 	End
 	
 	Method AddItem( name:String, dataItem:JSONDataItem )
-		values.Set(JSONData.UnEscapeJSON(name),dataItem)
+		values.Set(name,dataItem)
 	End
 	
 	Method RemoveItem( name:String )
