@@ -1,3 +1,4 @@
+Strict
 #rem
 '/*
 '* Copyright (c) 2011, Damian Sinclair
@@ -32,7 +33,7 @@ Private
 
 Class StringBuilder
     Field retStrings:String[]
-    Field index = 0
+    Field index:Int = 0
     
     Method New( initialSize:Int = 100 )
         If initialSize < 1
@@ -256,7 +257,7 @@ Class JSONData
 
     Function IntToHexString:String( input:Int )
     	Local retString:String[] = New String[4]
-        Local index = 3
+        Local index:Int = 3
     	Local nibble:Int
     	While input > 0 
     		nibble = input & $F
@@ -328,10 +329,11 @@ Class JSONData
 		ElseIf char >= 97 And char <= 102 'a-f'
 			Return char - 87
 		End
+        Return 0
 	End
 
 	Function UnEscapeUnicode:String(hexString:String)
-		Local charCode = 0
+		Local charCode:Int = 0
 		For Local i:= 0 Until 4
 			charCode Shl= 4
 			charCode += HexCharToInt(hexString[i])
@@ -545,27 +547,27 @@ Class JSONArray Extends JSONDataItem
 		dataType = JSONDataType.JSON_ARRAY 
 	End
 
-	Method AddPrim( value:Bool )
+	Method AddPrim:Void( value:Bool )
 		values.AddLast(JSONData.CreateJSONDataItem(value))
 	End
 	
-	Method AddPrim( value:Int )
+	Method AddPrim:Void( value:Int )
 		values.AddLast(JSONData.CreateJSONDataItem(value))
 	End
 	
-	Method AddPrim( value:Float )
+	Method AddPrim:Void( value:Float )
 		values.AddLast(JSONData.CreateJSONDataItem(value))
 	End
 	
-	Method AddPrim( value:String )
+	Method AddPrim:Void( value:String )
 		values.AddLast(JSONData.CreateJSONDataItem(value))
 	End
 	
-	Method AddItem( dataItem:JSONDataItem )
+	Method AddItem:Void( dataItem:JSONDataItem )
 		values.AddLast(dataItem)
 	End
 	
-	Method RemoveItem( dataItem:JSONDataItem )
+	Method RemoveItem:Void( dataItem:JSONDataItem )
 		values.RemoveEach(dataItem)
 	End
 	
@@ -617,12 +619,13 @@ Class JSONArray Extends JSONDataItem
 End
 
 Class JSONObjectMember Extends JSONDataItem
-	Field name
+	Field name:String
 	Field dataItem:JSONDataItem
 
 	Method New(name:String, dataItem:JSONDataItem) 
 		dataType = JSONDataType.JSON_OBJECT_MEMBER
-		Self.dataItem = dataItem
+		Self.name = name
+        Self.dataItem = dataItem
 	End
 
 	Method ToBool:Bool()
@@ -653,27 +656,27 @@ Class JSONObject Extends JSONDataItem
 		dataType = JSONDataType.JSON_OBJECT 
 	End
 
-	Method AddPrim( name:String, value:Bool )
+	Method AddPrim:Void( name:String, value:Bool )
 		values.Set(name,JSONData.CreateJSONDataItem(value))
 	End
 	
-	Method AddPrim( name:String, value:Int )
+	Method AddPrim:Void( name:String, value:Int )
 		values.Set(name,JSONData.CreateJSONDataItem(value))
 	End
 	
-	Method AddPrim( name:String, value:Float )
+	Method AddPrim:Void( name:String, value:Float )
 		values.Set(name,JSONData.CreateJSONDataItem(value))
 	End
 	
-	Method AddPrim( name:String, value:String )
+	Method AddPrim:Void( name:String, value:String )
 		values.Set(name,JSONData.CreateJSONDataItem(value))
 	End
 	
-	Method AddItem( name:String, dataItem:JSONDataItem )
+	Method AddItem:Void( name:String, dataItem:JSONDataItem )
 		values.Set(name,dataItem)
 	End
 	
-	Method RemoveItem( name:String )
+	Method RemoveItem:Void( name:String )
 		values.Remove(name)
 	End
 	
@@ -729,7 +732,7 @@ Class JSONObject Extends JSONDataItem
 			retString.AddString("~q")
             retString.AddString(JSONData.EscapeJSON(v.Key()))
             retString.AddString("~q:")
-            retString.AddString(v.Value.ToJSONString())
+            retString.AddString(v.Value().ToJSONString())
 		End
 	    retString.AddString("}")
 		Return retString.ToString()
@@ -748,9 +751,9 @@ Class JSONObject Extends JSONDataItem
 				retString.AddString(",")
 			End
 			retString.AddString("~q")
-            retString.AddString(v.Key)
+            retString.AddString(v.Key())
             retString.AddString("~q:")
-            retString.AddString(v.Value)
+            retString.AddString(v.Value())
 		End
         retString.AddString("}")
 		Return retString.ToString()
@@ -779,12 +782,12 @@ Class JSONObjectEnumerator
 		Self.enumerator = enumerator 
 	End
 
-	Method HasNext()
+	Method HasNext:Bool()
 		Return Self.enumerator.HasNext()
 	End
 	
 	Method NextObject:JSONObjectMember()
 		Local node:map.Node<String,JSONDataItem> = enumerator.NextObject()
-		Return New JSONObjectMember(node.Key,node.Value)
+		Return New JSONObjectMember(node.Key(), node.Value())
 	End
 End

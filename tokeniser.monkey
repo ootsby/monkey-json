@@ -236,7 +236,7 @@ Class JSONTokeniser
 		Return( char >= 48 And char <= 58 )
 	End
 
-	Method SkipIgnored()
+	Method SkipIgnored:Void()
 		Local ignoredCount:Int
 		Repeat
 			ignoredCount = 0
@@ -245,7 +245,7 @@ Class JSONTokeniser
 		Until ignoredCount = 0
 	End
 
-	Method SkipWhitespace()
+	Method SkipWhitespace:Int()
 		Local index:Int = stringIndex
 		While char <= ASCIICodes.CHR_SPACE
 			NextChar()
@@ -253,7 +253,7 @@ Class JSONTokeniser
 		Return stringIndex-index
 	End
 
-	Method SkipComments()
+	Method SkipComments:Int()
 		Local index:Int = stringIndex
 		If char = ASCIICodes.CHR_FORWARD_SLASH
 			NextChar()
@@ -283,7 +283,7 @@ Class JSONTokeniser
 		Return stringIndex-index
 	End
 
-	Method ParseFailure(description:String)
+	Method ParseFailure:Void(description:String)
 		If silent
 			Return
 		End
