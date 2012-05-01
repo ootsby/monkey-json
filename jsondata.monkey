@@ -76,7 +76,7 @@ Class JSONData
 			Return New JSONDataError("Unknown JSON error.", tokeniser.GetCurrentSectionString())
 		ElseIf data.dataType = JSONDataType.JSON_ERROR
             Print data.ToString()
-        ElseIf data.dataType <> JSONDataItem.JSONDataType.JSON_OBJECT And data.dataType <> JSONDataItem.JSONDataType.JSON_ARRAY
+        ElseIf data.dataType <> JSONDataType.JSON_OBJECT And data.dataType <> JSONDataType.JSON_ARRAY
 			Return New JSONDataError("JSON Document malformed. Root node is not an object or an array", tokeniser.GetCurrentSectionString())
 		End
 
