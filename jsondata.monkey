@@ -109,7 +109,7 @@ Class JSONData
 			Case JSONToken.TOKEN_OPEN_SQUARE
 				Return GetJSONArray(tokeniser)
 			Case JSONToken.TOKEN_STRING
-				Return New JSONString(StringObject(token.value))
+				Return New JSONString(StringObject(token.value), False)
 			Case JSONToken.TOKEN_FLOAT
 				Return New JSONFloat((FloatObject(token.value)).ToFloat())
 			Case JSONToken.TOKEN_UNPARSED_FLOAT
@@ -189,8 +189,8 @@ Class JSONData
 		If data.dataType = JSONDataType.JSON_NON_DATA And JSONNonData(data).value.tokenType = JSONToken.TOKEN_CLOSE_SQUARE
 			Return jsonArray
 		End
-	
-		Repeat
+	    
+        Repeat
 			If data.dataType = JSONDataType.JSON_NON_DATA
 				Return New JSONDataError("Expected data value, got " + data, tokeniser.GetCurrentSectionString())
 			ElseIf data.dataType = JSONDataType.JSON_ERROR
@@ -213,7 +213,7 @@ Class JSONData
 			Else
 				Return New JSONDataError("Expected ',' or '], got " + data, tokeniser.GetCurrentSectionString())
 			End
-		Forever
+        Forever
 
 		Return jsonArray
 	End	
@@ -251,8 +251,14 @@ Class JSONData
 	    	End
     	End
     	retString.AddString(input[lastSlice..])
-    	
-    	Return retString.ToString()
+    	Local s:String = retString.ToString()
+        'If input.Contains("\\")
+        '    Print "Escaped already escaped string!"
+        '    Print StackTrace()
+        '    Print input
+        '    Return input
+        'End
+    	Return s
     End
 
     Function IntToHexString:String( input:Int )
@@ -486,7 +492,7 @@ Class JSONString Extends JSONDataItem
 		Else
             Self.value = value
         End
-	End
+    End
 
 	Method ToJSONString:String()
         If jsonReady = ""
@@ -601,7 +607,7 @@ Class JSONArray Extends JSONDataItem
 			Else
 				retString.AddString(",")
 			End
-			retString.AddString(v)
+			retString.AddString(v.ToString())
 		End
         
         retString.AddString("]")

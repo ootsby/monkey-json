@@ -48,36 +48,16 @@ Class JSONToken
 
 	Private
 
+	Global reusableToken:JSONToken = New JSONToken(-1, Null)
+    
 	Method New( tokenType:Int, value:Object )
 		Self.tokenType = tokenType
 		Self.value = value
 	End
 
-	Method ToString:String()
-		Return "JSONToken - type: " + tokenType + ", value: " + GetValueString() 
-	End
-
-	Method GetValueString:String()
-		Select tokenType 
-			Case TOKEN_FLOAT
-				Return "" + FloatObject(value)
-			Case TOKEN_INTEGER
-				Return "" + IntObject(value)
-			Case TOKEN_NULL
-				Return "NULL"
-			Default
-                If value
-				    Return StringObject(value)
-                Else
-                    Return "Null value"
-                End 
-		End	
-	End
-
-	Global reusableToken:JSONToken = New JSONToken(-1,Null)
-	Public
-
-	Function CreateToken:JSONToken( tokenType:Int, value:Float )
+    Public
+    
+    Function CreateToken:JSONToken(tokenType:Int, value:Float)
 		reusableToken.tokenType = tokenType
 		reusableToken.value = New FloatObject(value)
 		Return reusableToken
@@ -100,6 +80,29 @@ Class JSONToken
 		reusableToken.value = value
 		Return reusableToken
 	End
+    
+	Method ToString:String()
+		Return "JSONToken - type: " + tokenType + ", value: " + GetValueString() 
+	End
+
+	Method GetValueString:String()
+		Select tokenType 
+			Case TOKEN_FLOAT
+				Return "" + FloatObject(value)
+			Case TOKEN_INTEGER
+				Return "" + IntObject(value)
+			Case TOKEN_NULL
+				Return "NULL"
+			Default
+                If value
+				    Return StringObject(value)
+                Else
+                    Return "Null value"
+                End 
+		End	
+	End
+	
+	
 End
 
 Class JSONTokeniser
@@ -120,11 +123,11 @@ Class JSONTokeniser
 	End
 
 	Method GetCurrentSectionString:String(backwards:Int = 20,forwards:Int = 20)
-		Return "Section: " + jsonString[Max(stringIndex-backwards,0)..Min(stringIndex+forwards,jsonString.Length-1)]
+		Return "Section: " + jsonString[Max(stringIndex-backwards,0)..Min(stringIndex+forwards,jsonString.Length)]
 	End
 
 	Method NextToken:JSONToken()
-		Local retToken:JSONToken
+		Local retToken:JSONToken = Null
 		SkipIgnored()
 
         Select char
@@ -174,11 +177,11 @@ Class JSONTokeniser
 				If char = ASCIICodes.CHR_HYPHEN Or IsDigit(char)
 					Return ParseNumberToken(char) 'We return here because ParseNumberToken moves the token pointer forward
 				Else If char = ASCIICodes.CHR_NUL
-					Return Null 'End of string so just leave'
+					retToken = Null 'End of string so just leave'
 				End
 								
 		End
-		If Not retToken
+		If retToken = Null
 			ParseFailure("Unknown token, char: " + String.FromChar(char))
 			retToken = JSONToken.CreateToken(JSONToken.TOKEN_UNKNOWN,Null)
 		Else
@@ -191,7 +194,7 @@ Class JSONTokeniser
 	Private
 	
 	Method NextChar:Int()
-		If stringIndex = jsonString.Length
+		If stringIndex >= jsonString.Length
 			char = ASCIICodes.CHR_NUL
             Return char
 		End
@@ -204,7 +207,7 @@ Class JSONTokeniser
 		Local index:Int = stringIndex-1
 		'First just get the full string
 		While char <> ASCIICodes.CHR_SPACE And char <> ASCIICodes.CHR_COMMA And 
-                char <> ASCIICodes.CHR_CLOSE_CURLY And char <> ASCIICodes.CHR_CLOSE_SQUARE
+                char <> ASCIICodes.CHR_CLOSE_CURLY And char <> ASCIICodes.CHR_CLOSE_SQUARE And char <> ASCIICodes.CHR_NUL
 			NextChar()
 		End
 		If char = ASCIICodes.CHR_NUL
@@ -247,7 +250,7 @@ Class JSONTokeniser
 
 	Method SkipWhitespace:Int()
 		Local index:Int = stringIndex
-		While char <= ASCIICodes.CHR_SPACE
+		While char <= ASCIICodes.CHR_SPACE And char <> ASCIICodes.CHR_NUL
 			NextChar()
 		End
 		Return stringIndex-index
@@ -258,7 +261,7 @@ Class JSONTokeniser
 		If char = ASCIICodes.CHR_FORWARD_SLASH
 			NextChar()
 			If char = ASCIICodes.CHR_FORWARD_SLASH
-				While char <> ASCIICodes.CHR_CR And char <> ASCIICodes.CHR_LF
+				While char <> ASCIICodes.CHR_CR And char <> ASCIICodes.CHR_LF And char <> ASCIICodes.CHR_NUL
 					NextChar()
 				End
 			ElseIf char = ASCIICodes.CHR_ASTERISK
