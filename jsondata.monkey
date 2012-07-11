@@ -417,7 +417,8 @@ End
 
 Class JSONFloat Extends JSONDataItem
 	Field value:Float
-	Field unparsed:String
+	Field unparsedStr:String
+    Field unparsed:Bool = False
     
 	Method New(value:Float) 
 		dataType = JSONDataType.JSON_FLOAT 
@@ -427,16 +428,17 @@ Class JSONFloat Extends JSONDataItem
     'This constructor creates a float container that stores the unparsed
     'value string. This is to spread the load of parsing the data
     'as parsing floats is very expensive on Android.
-    Method New(unparsed:String) 
+    Method New(unparsedStr:String) 
 		dataType = JSONDataType.JSON_FLOAT 
-		Self.unparsed = unparsed
+		Self.unparsedStr = unparsedStr
+        Self.unparsed = True
 	End
     
     Method Parse:Void()
-        If Not unparsed
-            Return
+        If unparsed
+            value = Float(unparsedStr)
+            unparsed = False 
         End
-        value = Float(unparsed)
     End
     
 	Method ToInt:Int()
@@ -616,7 +618,7 @@ Class JSONArray Extends JSONDataItem
 	End
 
 	Method ObjectEnumerator:list.Enumerator<JSONDataItem>()
-		Return values.ObjectEnumerator()
+		Return list.Enumerator<JSONDataItem>(values.ObjectEnumerator())
 	End
     
     Method Clear:Void()
